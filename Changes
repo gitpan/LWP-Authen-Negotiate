@@ -1,6 +1,18 @@
 Revision history for Perl extension LWP::Authen::Negotiate.
 
-0.01  Tue Jul 26 20:43:48 2005
+0.03	Do Feb 16 22:51:06 CET 2006
+
+	- made the module use of CPAN GSSAPI 0.18 adapter
+	  to become ready for CPAN
+	- first time in CPAN...
+
+0.02  2005-12-02
+
+	Better errorhandling, not simple dieing...
+	Added useful hints do documentation
+	USes GSS_C_NT_HOSTBASED_SERVICE now
+
+0.01  Wed Nov 30 02:01:29 2005
 	- original version; created by h2xs 1.23 with options
 		-X -n LWP::Authen::Negotiate
 
