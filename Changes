@@ -1,0 +1,6 @@
+Revision history for Perl extension LWP::Authen::Negotiate.
+
+0.01  Tue Jul 26 20:43:48 2005
+	- original version; created by h2xs 1.23 with options
+		-X -n LWP::Authen::Negotiate
+
