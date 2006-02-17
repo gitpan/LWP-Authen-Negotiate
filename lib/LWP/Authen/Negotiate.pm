@@ -25,12 +25,27 @@ our @EXPORT = qw(
 
 );
 
-our $VERSION = '0.04';
+our $VERSION = '0.03';
 
 
+use GSSAPI;
 use MIME::Base64 "2.12";
-use GSSAPI 0.18;
+use URI;
 
+my $MECHS = {
+	KRB5 => gss_mech_krb5,
+	SPNEGO => gss_mech_spnego
+};
+
+sub mech2oid
+{
+	$MECHS->{$_[0]};
+}
+
+sub listmechs
+{
+	keys %{$MECHS};
+}
 
 sub authenticate
   {
@@ -38,52 +53,52 @@ sub authenticate
     my ($class,$ua,$proxy,$auth_param,$response,$request,$arg,$size) = @_;
 
     my $uri = URI->new($request->uri);
-    my $targethost = $request->uri()->host();
-
-    my ($otime,$omech,$otoken,$oflags);
+	my ($otime,$omech,$otoken,$oflags);
     my $target;
-    my $status;
-    TRY: {
-        $status  = GSSAPI::Name->import(
-                      $target,
-                      join( '@', 'HTTP', $targethost ),
-		      GSSAPI::OID::gss_nt_hostbased_service
-		 );
-        last TRY if  ( $status->major != GSS_S_COMPLETE );
-        my $tname;
-        $target->display( $tname );
-        LWP::Debug::debug("target hostname $targethost");
-        LWP::Debug::debug("GSSAPI servicename $tname");
-        my $auth_header = $proxy ? "Proxy-Authorization" : "Authorization";
+    my $status = GSSAPI::Name->import($target,"HTTP@".$uri->host,GSSAPI::OID::gss_nt_hostbased_service);
+    my $tname;
+    #$target->display($tname);
+    #LWP::Debug::debug("Using HTTP@".$uri->host." -> ".$tname);
+    my $auth_header = $proxy ? "Proxy-Authorization" : "Authorization";
 
-        my $itoken = q{};
-        foreach ($response->header('WWW-Authenticate')) {
-          last if /^Negotiate (.+)/ && ($itoken=decode_base64($1));
-        }
+    my $itoken;
+    foreach ($response->header('WWW-Authenticate')) {
+      last if /^Negotiate (.+)/ && ($itoken=decode_base64($1));
+    }
 
-        my $ctx = GSSAPI::Context->new();
-        my $imech = GSSAPI::OID::gss_mech_krb5;
-        #my $iflags = GSS_C_MUTUAL_FLAG;
-        my $iflags = GSS_C_REPLAY_FLAG;
-        my $bindings = GSS_C_NO_CHANNEL_BINDINGS;
-        my $creds = GSS_C_NO_CREDENTIAL;
-        my $itime = 0;
-	$status = $ctx->init($creds,$target,$imech,$iflags,$itime,$bindings,$itoken,
-	                     $omech,$otoken,$oflags,$otime);
-        if  (    $status->major == GSS_S_COMPLETE
-	      or $status->major == GSS_S_CONTINUE_NEEDED   ) {
-            LWP::Debug::debug( 'successfull $ctx->init()');
-	    my $referral = $request->clone;
-	    $referral->header( $auth_header => "Negotiate ".encode_base64($otoken,""));
-	    return $ua->request( $referral, $arg, $size, $response );
-	}
-    }
-    if ( $status->major != GSS_S_COMPLETE  ) {
-       LWP::Debug::debug( $status->generic_message());
-       LWP::Debug::debug( $status->specific_message() );
-       return $response;
-    }
-}
+    my $ctx = GSSAPI::Context->new();
+    my $mech = $ENV{LWP_AUTHEN_NEGOTIATE_MECH} || 'KRB5';
+    my $imech = mech2oid($mech);
+    $imech = gss_mech_krb5 unless defined $imech;
+    my $iflags = GSS_C_MUTUAL_FLAG;
+    $iflags |= GSS_C_DELEG_FLAG if $ENV{LWP_AUTHEN_NEGOTIATE_DELEGATE};
+    my $bindings = GSS_C_NO_CHANNEL_BINDINGS;
+    my $creds = GSS_C_NO_CREDENTIAL;
+    my $itime = 0;
+    $status = $ctx->init($creds,$target,$imech,$iflags,$itime,$bindings,$itoken,$omech,$otoken,$oflags,$otime);
+
+  STATUS:
+    {
+      $status->major == GSS_S_COMPLETE || $status->major == GSS_S_CONTINUE_NEEDED and do {
+		if ($otoken || $status->major == GSS_S_CONTINUE_NEEDED)
+		  {
+		    my $referral = $request->clone;
+		    $referral->header($auth_header => "Negotiate ".encode_base64($otoken,""));
+		    return $ua->request($referral,$arg,$size,$response);
+		  }
+      },last STATUS;
+
+      do {
+      	$response->header("Client-Warning"=>"$status");
+      	return $response;
+      },last STATUS;
+    };
+
+  }
+
+# Preloaded methods go here.
+
+# Autoload methods go after =cut, and are processed by the autosplit program.
 
 1;
 __END__
@@ -91,13 +106,17 @@ __END__
 
 =head1 NAME
 
+
 LWP::Authen::Negotiate - GSSAPI Authentication Plugin for LWP
 
 =head1 SYNOPSIS
 
-just install, LWP uses it as authentication plugin.
-Use your LWP::UserAgent Scripts as usual based on your GSSAPI
-installation (MIT Kerberos or Heimdal)
+just install the module, LWP uses it as plugin.
+(LWP searches at location LWP::Authen::Negotiate for
+a module that can handle HTTP Negotiate if the Webserver
+is able to do HTTP-Negotiate).
+
+Use your LWP::UserAgent Scripts as usual
 
 =head1 DESCRIPTION
 
@@ -105,89 +124,74 @@ To see what ist going on add
 
    use LWP::Debug qw(+);
 
-to yor LWP using Scripts.
+to yor LWP-using Scripts.
 
-(e.g. too see what is going wrong with GSSAPI...)
 
-=head1 DEBUGGING
+=head2 EXPORT
 
-To see what ist going on (and going wrong) add
 
-   use LWP::Debug qw(+);
+None by default
 
-to yor LWP using Scripts.
-
-(e.g. too see what is going wrong with GSSAPI...)
-
-the output will look like this:
-
-   LWP::UserAgent::new: ()
-   LWP::UserAgent::request: ()
-   LWP::UserAgent::send_request: GET http://testwurst.grolmsnet.lan:8090/geheim/
-   LWP::UserAgent::_need_proxy: Not proxied
-   LWP::Protocol::http::request: ()
-   LWP::Protocol::collect: read 478 bytes
-   LWP::UserAgent::request: Simple response: Unauthorized
-   LWP::Authen::Negotiate::authenticate: authenticate() called
-   LWP::Authen::Negotiate::authenticate: target hostname testwurst.grolmsnet.lan
-   LWP::Authen::Negotiate::authenticate: GSSAPI servicename     HTTP/moerbsen.grolmsnet.lan@GROLMSNET.LAN
-   LWP::Authen::Negotiate::authenticate:  Miscellaneous failure (see text)
-   LWP::Authen::Negotiate::authenticate: open(/tmp/krb5cc_1000): file not found
-
-In this case the credentials cache was empty.
-Run kinit first ;-)
-
-=head1 SEE ALSO
+=head2 ENVIROMENT
 
 =over
 
-=item http://www.kerberosprotocols.org/index.php/Draft-brezak-spnego-http-03.txt
+=item LWP_AUTHEN_NEGOTIATE_MECH
 
-Description of WWW-Negotiate protol
+selects the GSSAPI-mechanism to use: 'KRB5' or 'SPNEGO' (if your GSSAPI supports it). Since
+SPNEGO isn't widely deployed yet 'KRB5' is the default. This may change in the future. Always
+set LWP_AUTHEN_NEGOTIATE_MECH to indicate your preference.
 
-=item http://modauthkerb.sourceforge.net/
+=item LWP_AUTHEN_NEGOTIATE_DELEGATE
 
-the Kerberos and SPNEGO Authentication module for Apache mod_auth_kerb
-
-
-=item http://perlgssapi.sourceforge.net/
-
-Module Homepage
-
-=item http://www.kerberosprotocols.org/index.php/Web
-
-Sofware and APIs related to WWW-Negotiate
-
-=item http://www.grolmsnet.de/kerbtut/
-
-describes how to let mod_auth_kerb play together
-with Internet Explorer and Windows2003 Server
+Define to enable ticket forwarding to webserver.
 
 =back
 
+=head1 SEE ALSO
 
+GSSAPI
 
+http://www.kerberosprotocols.org/index.php/Web
+
+http://www.kerberosprotocols.org/index.php/Draft-brezak-spnego-http-03.txt
+
+http://modauthkerb.sourceforge.net/
+
+=head1 SUPPORT
+
+=over
+
+=item http://perlgssapi.sourceforge.net/
+
+Project home of GSSAPI related modules
+
+=item Mailinglists
+
+=over
+
+=item perlgssapi-users@lists.sourceforge.net
+
+User questions
+
+=item perlgssapi-developer@lists.sourceforge.net
+
+Developer discussions
+
+=back
+
+=back
 
 =head1 AUTHOR
 
-Achim Grolms, E<lt>achim@grolmsnet.deE<gt>
-
-http://perlgssapi.sourceforge.net/
-
-Thanks to Leif Johansson, Harald Joerg, Christopher Odenbach
-
-
-=head1 BUGS
-
-Ticket forwarding is not supportes at the moment.
-
+Leif Johannson, E<lt>leifj@it.su.seE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Achim Grolms <perl@grolmsnet.de>
+Copyright (C) 2006 by Leif Johannson, E<lt>leifj@it.su.seE<gt>
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.4 or,
+it under the same terms as Perl itself, either Perl version 5.8.6 or,
 at your option, any later version of Perl 5 you may have available.
 
 
