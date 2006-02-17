@@ -1,16 +1,19 @@
-LWP-Authen-Negotiate version 0.01
+LWP-Authen-Negotiate version 0.05
 =================================
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+LWP::Authen::Negotiate
+ist a authentication plugin for LWP.
+Just install the module,
+LWP uses it as a plugin.
 
-A README file is required for CPAN modules since CPAN extracts the
-README file from a module distribution so that people browsing the
-archive can use it get an idea of the modules uses. It is usually a
-good idea to provide version information here so that people can
-decide whether fixes for the module are worth downloading.
+WWW-Negotiate supporting Webservers are
+IIS or Apache with mod_auth_kerb for example.
+
+To see what ist going on add
+
+use LWP::Debug qw(+);
+
+to yor LWP using Scripts.
 
 INSTALLATION
 
@@ -21,20 +24,29 @@ To install this module type the following:
    make test
    make install
 
+Ensure you GSSAPI installation is working correctly!
+
 DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  blah blah blah
+
+MIME::Base64 "2.12";
+GSSAPI 0.18
+
+
+SUPPORT
+<http://perlgssapi.sourceforge.net/>
 
 COPYRIGHT AND LICENCE
 
-Put the correct copyright and licence information here.
 
-Copyright (C) 2005 by A. U. Thor
+Copyright (C) 2006 by Achim Grolms <perl@grolmsnet.de>
+
+
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.6 or,
+it under the same terms as Perl itself, either Perl version 5.8.4 or,
 at your option, any later version of Perl 5 you may have available.
 
 
