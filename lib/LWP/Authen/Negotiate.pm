@@ -25,7 +25,7 @@ our @EXPORT = qw(
 
 );
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 
 use MIME::Base64 "2.12";
@@ -40,7 +40,7 @@ sub authenticate
     my $uri = URI->new($request->uri);
     my $targethost = $request->uri()->host();
 
-    my ($otime,$omech,$otoken,$oflags);
+    my $otoken;
     my $status;
     TRY: {
         my ($target, $tname);
@@ -89,7 +89,7 @@ sub authenticate
 	#
 	$status = $ctx->init( $creds, $target,
 	                      $imech, $iflags, $itime , $bindings,$itoken,
-	                      $omech, $otoken, $oflags, $otime );
+	                      undef, $otoken, undef, undef);
         if  (    $status->major == GSS_S_COMPLETE
 	      or $status->major == GSS_S_CONTINUE_NEEDED   ) {
             LWP::Debug::debug( 'successfull $ctx->init()');

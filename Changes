@@ -1,5 +1,13 @@
 Revision history for Perl extension LWP::Authen::Negotiate.
 
+0.06    Di Mar  7 21:10:12 CET 2006
+
+        - fixed bug to use undef in case of
+          ignored parameters in call to
+          gss_init_security context.
+          Thanks to Christopher Odenbach and Simon
+          Wilkinson
+
 0.05	Fr Feb 17 15:58:25 CET 2006
 
 	- added the LWP_AUTHEN_NEGOTIATE_DELEGATE

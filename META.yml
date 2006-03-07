@@ -1,13 +1,12 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         LWP-Authen-Negotiate
-license:      perl
-version:      0.05
-abstract: GSSAPI based Authentication Plugin for LWP
-author: Achim Grolms <perl@grolmsnet.de>
+version:      0.06
+version_from: lib/LWP/Authen/Negotiate.pm
 installdirs:  site
 requires:
-  GSSAPI: 0.18
-  MIME::Base64: 2.12
+    GSSAPI:                        0.18
+    MIME::Base64:                  2.12
+
 distribution_type: module
 generated_by: ExtUtils::MakeMaker version 6.17
