@@ -3,6 +3,8 @@ package LWP::Authen::Negotiate;
 use strict;
 use warnings;
 
+use LWP::Debug;
+
 require Exporter;
 use AutoLoader qw(AUTOLOAD);
 
@@ -25,7 +27,7 @@ our @EXPORT = qw(
 
 );
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 
 use MIME::Base64 "2.12";
