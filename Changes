@@ -1,5 +1,8 @@
 Revision history for Perl extension LWP::Authen::Negotiate.
 
+0.08    Do 29. Okt 22:09:12 CET 2009
+        - added LWP::Debug to dependencies...
+
 0.07    Di 27. Okt 20:51:50 CET 2009
 
         - fixed <https://rt.cpan.org/Public/Bug/Display.html?id=50881>
