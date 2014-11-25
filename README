@@ -13,7 +13,7 @@ To see what ist going on add
 
 use LWP::Debug qw(+);
 
-to yor LWP using Scripts.
+to your LWP using Scripts.
 
 INSTALLATION
 
