@@ -94,7 +94,7 @@ sub authenticate
 	                      undef, $otoken, undef, undef);
         if  (    $status->major == GSS_S_COMPLETE
 	      or $status->major == GSS_S_CONTINUE_NEEDED   ) {
-            LWP::Debug::debug( 'successfull $ctx->init()');
+            LWP::Debug::debug( 'successful $ctx->init()');
 	    my $referral = $request->clone;
 	    $referral->header( $auth_header => "Negotiate ".encode_base64($otoken,""));
 	    return $ua->request( $referral, $arg, $size, $response );
