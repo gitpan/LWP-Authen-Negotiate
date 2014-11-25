@@ -245,7 +245,7 @@ Thanks to
 
 =item Leif Johansson
 
-who has conributed a lot of code from his
+who has contributed a lot of code from his
 implementation of the module and
 send a lot of input, ideas and feedback
 
